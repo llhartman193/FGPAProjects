@@ -9,8 +9,8 @@ module button_led_top(
 
 	parameter	SLOW_CLK_PERIOD = 6250000;
 
-	wire	btn0_db = 0;
-	wire 	btn1_db	= 0;
+	wire	btn0_db;
+	wire 	btn1_db;
 
 	// Intantiate the debouncer for sb and sw2
 	debouncer #(

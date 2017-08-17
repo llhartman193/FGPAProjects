@@ -26,19 +26,22 @@ module led_controller (
 	parameter 	UDMODE_INCR 		= 2'b01;
 	parameter 	UDMODE_DECR 		= 2'b10;
 
-	parameter	SLOW_CLK_PERIOD		= 6250000;
-
+	parameter	SLOW_CLK_PERIOD			= 6250000;
+	parameter 	PERIOD_CHANGE_AMOUNT	=  500000;
 
 	reg		[1:0]	count_state	 	= COUNT_IDLE;
 	reg		[36:0]	count;
 
 	reg				sinemode_led_state	= SINEMODE_LED_INCR;
 	reg				updown_led_state	= UDMODE_INCR;
-	reg		[3:0]	sine_led_data 		= 0;
-	reg		[3:0]	updown_led_data		= 0;
+	reg		[3:0]	sine_led_data 		= 4'h7;
+	reg		[3:0]	updown_led_data		= 4'h7;
 
 
-	reg				update_leds 	= 0;
+	reg				update_leds 		= 0;
+
+	reg		[40:0]	update_period 		= (i_mode)? SLOW_CLK_PERIOD : update_period_next;  
+	reg		[40:0]	update_period_next	= SLOW_CLK_PERIOD;  
 
 
 	// LED Output
@@ -102,7 +105,7 @@ module led_controller (
 
 			COUNT_ACTIVE : begin
 				update_leds <= 0;
-				if(count == SLOW_CLK_PERIOD) begin
+				if(count == update_period) begin
 					count <= 36'h0;
 					update_leds <= 1;
 				end
@@ -152,7 +155,7 @@ module led_controller (
 		end
 	end
 
-	// Up Down Mode State Machine
+	// State machine to handle button presses up/down
 	always @(posedge i_clk) begin
 		if(update_leds && (i_mode == UPDOWN_MODE)) begin
 
@@ -160,13 +163,13 @@ module led_controller (
 
 				UDMODE_INCR : begin
 					updown_led_data <= updown_led_data;
-					if(updown_led_data <= 4'hF)
+					if(updown_led_data < 4'hF)
 						updown_led_data <= updown_led_data + 1;	
 				end
 
 				UDMODE_DECR: begin
 					updown_led_data <= updown_led_data;
-					if(updown_led_data >= 4'h0)
+					if(updown_led_data > 4'h0)
 						updown_led_data <= updown_led_data - 1;
 				end
 
@@ -176,6 +179,27 @@ module led_controller (
 
 			endcase
 
+		end
+		else if(update_leds && (i_mode == SINE_MODE)) begin
+			case (ud_mode_incr_decr) // Synchronized at top level
+
+				UDMODE_INCR : begin
+					update_period_next <= update_period;
+					if( (update_period - PERIOD_CHANGE_AMOUNT) > 0 )
+						update_period_next <= update_period - PERIOD_CHANGE_AMOUNT;
+				end
+
+				UDMODE_DECR: begin
+					update_period_next <= update_period;
+					if( (update_period + PERIOD_CHANGE_AMOUNT) < (SLOW_CLK_PERIOD << 5) )
+						update_period_next <= update_period + PERIOD_CHANGE_AMOUNT;
+				end
+
+				default : begin
+					update_period_next <= update_period;
+				end
+
+			endcase
 		end
 	end
 

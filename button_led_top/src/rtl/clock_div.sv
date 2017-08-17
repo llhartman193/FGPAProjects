@@ -9,8 +9,8 @@ module clock_div (
 	reg		[37:0]	counter = 0;
 
 	always @(posedge i_clk) begin
-		counter 	<= (counter >= (SLOW_CLK_PERIOD << 1) ) ? 0 : counter + 1;
-		o_slowclk 	<= (counter < SLOW_CLK_PERIOD)?  1'b0 : 1'b1;
+		counter 	<= (counter >= (SLOW_CLK_PERIOD) ) ? 0 : counter + 1;
+		o_slowclk 	<= (counter < SLOW_CLK_PERIOD >> 1)?  1'b0 : 1'b1;
 	end
 
 
